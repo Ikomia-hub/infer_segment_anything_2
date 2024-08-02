@@ -369,6 +369,8 @@ class InferSegmentAnything2Factory(dataprocess.CTaskFactory):
         # Code source repository
         self.info.repository = "https://github.com/Ikomia-hub/infer_segment_anything_2"
         self.info.original_repository = "https://github.com/facebookresearch/segment-anything-2"
+        # Python version
+        self.info.min_python_version = "3.11.0"
         # Keywords used for search
         self.info.keywords = "SAM, ViT, Zero-Shot, SA-V dataset, Meta"
         self.info.algo_type = core.AlgoType.INFER
