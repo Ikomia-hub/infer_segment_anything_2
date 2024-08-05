@@ -18,7 +18,7 @@ class InferSegmentAnything2Param(core.CWorkflowTaskParam):
     def __init__(self):
         core.CWorkflowTaskParam.__init__(self)
         # Place default value initialization here
-        self.model_name = "sam2_hiera_large"
+        self.model_name = "sam2_hiera_small"
         self.apply_postprocessing = False
         self.points_per_side = 32
         self.points_per_batch = 64
@@ -37,7 +37,7 @@ class InferSegmentAnything2Param(core.CWorkflowTaskParam):
         self.input_point_label = ''
         self.cuda = torch.cuda.is_available()
         self.use_m2m = False
-        self.multimask_output = True
+        self.multimask_output = False
         self.update = False
 
     def set_values(self, param_map):
