@@ -251,13 +251,11 @@ class InferSegmentAnything2(dataprocess.CSemanticSegmentationTask):
         # Get parameters :
         param = self.get_param_object()
 
-        src_image = self.get_input(0)
-
         # Get input (numpy array)
         src_image = self.get_input(0).get_image()
 
-        # Check the number of channels - Normal behaviour in STUDIO?
-        if src_image.shape[-1] == 4:  # RGBA
+        # Check the number of channels
+        if src_image.shape[-1] == 4:  # RGBA?
             src_image = src_image[:, :, :3]  # Keep only RGB channels
 
         # Resize image
@@ -350,7 +348,7 @@ class InferSegmentAnything2Factory(dataprocess.CTaskFactory):
         # Set algorithm information/metadata here
         # Set process information as string here
         self.info.name = "infer_segment_anything_2"
-        self.info.short_description = "Inference for Segment Anything Model (SAM)."
+        self.info.short_description = "Inference for Segment Anything Model 2 (SAM2)."
         # relative path -> as displayed in Ikomia application process tree
         self.info.path = "Plugins/Python/Segmentation"
         self.info.version = "1.0.0"
