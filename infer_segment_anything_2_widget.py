@@ -2,14 +2,9 @@ from ikomia import core, dataprocess
 from ikomia.utils import pyqtutils, qtconversion
 from infer_segment_anything_2.infer_segment_anything_2_process import InferSegmentAnything2Param
 from torch.cuda import is_available
-# PyQt GUI framework
 from PyQt5.QtWidgets import *
 
 
-# --------------------
-# - Class which implements widget associated with the algorithm
-# - Inherits PyCore.CWorkflowTaskWidget from Ikomia API
-# --------------------
 class InferSegmentAnything2Widget(core.CWorkflowTaskWidget):
 
     def __init__(self, param, parent):
@@ -48,10 +43,12 @@ class InferSegmentAnything2Widget(core.CWorkflowTaskWidget):
                                                              min=1, max=100)
 
         # Section 2: PROMPT PREDICTOR
-        self.toggle_prompt_button = QPushButton("Toggle PROMPT PREDICTOR")
+        self.toggle_prompt_button = QPushButton("▶ PROMPT PREDICTOR")
         self.toggle_prompt_button.setCheckable(True)
         self.toggle_prompt_button.setChecked(False)
         self.toggle_prompt_button.toggled.connect(self.toggle_prompt_group)
+        self.toggle_prompt_button.setStyleSheet("text-align: left; padding: 5px;")
+
         self.grid_layout.addWidget(self.toggle_prompt_button)
 
         self.prompt_group = QGroupBox("PROMPT PREDICTOR")
@@ -78,10 +75,11 @@ class InferSegmentAnything2Widget(core.CWorkflowTaskWidget):
                                     )
 
         # Section 2: AUTOMATIC MASK GENERATOR
-        self.toggle_automask_button = QPushButton("Toggle AUTOMATIC MASK GENERATOR")
+        self.toggle_automask_button = QPushButton("▶ AUTOMATIC MASK GENERATOR")
         self.toggle_automask_button.setCheckable(True)
         self.toggle_automask_button.setChecked(False)
         self.toggle_automask_button.toggled.connect(self.toggle_automask_group)
+        self.toggle_automask_button.setStyleSheet("text-align: left; padding: 5px;")
         self.grid_layout.addWidget(self.toggle_automask_button)
 
         self.automask_group = QGroupBox("AUTOMATIC MASK GENERATOR")
@@ -141,9 +139,17 @@ class InferSegmentAnything2Widget(core.CWorkflowTaskWidget):
         self.set_layout(layout_ptr)
 
     def toggle_automask_group(self, checked):
+        if checked:
+            self.toggle_automask_button.setText("▼ AUTOMATIC MASK GENERATOR")
+        else:
+            self.toggle_automask_button.setText("▶ AUTOMATIC MASK GENERATOR")
         self.automask_group.setVisible(checked)
 
     def toggle_prompt_group(self, checked):
+        if checked:
+            self.toggle_prompt_button.setText("▼ PROMPT PREDICTOR")
+        else:
+            self.toggle_prompt_button.setText("▶ PROMPT PREDICTOR")
         self.prompt_group.setVisible(checked)
 
     def on_apply(self):
@@ -172,17 +178,11 @@ class InferSegmentAnything2Widget(core.CWorkflowTaskWidget):
         self.emit_apply(self.parameters)
 
 
-# --------------------
-# - Factory class to build algorithm widget object
-# - Inherits PyDataProcess.CWidgetFactory from Ikomia API
-# --------------------
 class InferSegmentAnything2WidgetFactory(dataprocess.CWidgetFactory):
 
     def __init__(self):
         dataprocess.CWidgetFactory.__init__(self)
-        # Set the algorithm name attribute -> it must be the same as the one declared in the algorithm factory class
         self.name = "infer_segment_anything_2"
 
     def create(self, param):
-        # Create widget object
         return InferSegmentAnything2Widget(param, None)
