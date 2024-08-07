@@ -27,9 +27,10 @@ def get_model(model_name):
                     "sam2_hiera_base_plus": "sam2_hiera_b+.yaml",
                     "sam2_hiera_large": "sam2_hiera_l.yaml",
                     "sam2_hiera_tiny": "sam2_hiera_t.yaml"}
-    cfg_path =  os.path.join(str(config_folder), config_list[model_name])#
 
-    return model_weight, cfg_path
+    cfg_name = config_list[model_name]
+
+    return model_weight, config_folder, cfg_name
 
 def resize_mask(mask, h_orig, w_orig):
     mask = cv2.resize(

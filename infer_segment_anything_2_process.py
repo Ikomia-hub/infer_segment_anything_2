@@ -1,13 +1,18 @@
 import copy
-from ikomia import core, dataprocess, utils
 import torch
+import numpy as np
+import cv2
+import json
+import hydra
+
+from ikomia import core, dataprocess, utils
+
 from infer_segment_anything_2.utils_ik import *
 from infer_segment_anything_2.sam_2.sam2.build_sam import build_sam2
 from infer_segment_anything_2.sam_2.sam2.sam2_image_predictor import SAM2ImagePredictor
 from infer_segment_anything_2.sam_2.sam2.automatic_mask_generator import SAM2AutomaticMaskGenerator
-import numpy as np
-import cv2
-import json
+
+from omegaconf import DictConfig
 
 # --------------------
 # - Class to handle the algorithm parameters
@@ -271,12 +276,27 @@ class InferSegmentAnything2(dataprocess.CSemanticSegmentationTask):
         if param.update or self.sam2_model is None:
             self.device = torch.device("cuda") if param.cuda and \
                             torch.cuda.is_available() else torch.device("cpu")
-            checkpoint, model_cfg = get_model(param.model_name)
+            checkpoint, config_folder, model_cfg = get_model(param.model_name)
+            
+            # Clear existing Hydra instance
+            hydra.core.global_hydra.GlobalHydra.instance().clear()
+
+            # Reinitialize Hydra with the new configuration module path
+            hydra.initialize_config_dir(config_dir=config_folder, job_name="infer_segment_anything_2")
+
+            # Load the configuration
+            cfg = hydra.compose(config_name=model_cfg)
+
+            # Ensure cfg is a valid configuration object
+            if not isinstance(cfg, DictConfig):
+                raise TypeError("Configuration is not a valid DictConfig object")
+
             self.sam2_model = build_sam2(
                                 model_cfg,
                                 checkpoint,
                                 device=self.device,
-                                apply_postprocessing=param.apply_postprocessing)
+                                apply_postprocessing=param.apply_postprocessing)    
+
             param.update = False
 
         # Check graphic input prompt
