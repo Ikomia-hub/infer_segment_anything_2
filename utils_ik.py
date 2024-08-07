@@ -14,6 +14,9 @@ def check_float16_and_bfloat16_support():
         compute_capability = torch.cuda.get_device_capability(gpu)
         float16_support = compute_capability[0] >= 6  # Compute capability 6.0 or higher
         bfloat16_support = compute_capability[0] >= 8  # Compute capability 8.0 or higher
+        if bfloat16_support:
+            torch.backends.cuda.matmul.allow_tf32 = True
+            torch.backends.cudnn.allow_tf32 = True
 
         print(f"GPU: {device_name}")
         print(f"Compute Capability: {compute_capability}")
