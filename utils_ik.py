@@ -2,9 +2,31 @@ import os
 from pathlib import Path
 import requests
 import cv2
+import torch
 
 base_url = "https://dl.fbaipublicfiles.com/segment_anything_2/072824/"
 
+
+def check_float16_and_bfloat16_support():
+    if torch.cuda.is_available():
+        gpu = torch.device('cuda')
+        device_name = torch.cuda.get_device_name(gpu)
+        compute_capability = torch.cuda.get_device_capability(gpu)
+        float16_support = compute_capability[0] >= 6  # Compute capability 6.0 or higher
+        bfloat16_support = compute_capability[0] >= 8  # Compute capability 8.0 or higher
+
+        print(f"GPU: {device_name}")
+        print(f"Compute Capability: {compute_capability}")
+        print(f"float16 support: {float16_support}")
+        print(f"bfloat16 support: {bfloat16_support}")
+
+        return float16_support, bfloat16_support
+    else:
+        print("No GPU found")
+        return False, False
+
+# Check for float16 and bfloat16 support
+float16_support, bfloat16_support = check_float16_and_bfloat16_support()
 
 def get_model(model_name):
     model_folder = Path(os.path.dirname(os.path.realpath(__file__)) + "/models/")
@@ -39,3 +61,4 @@ def resize_mask(mask, h_orig, w_orig):
                         interpolation = cv2.INTER_NEAREST
         )
     return mask
+
