@@ -25,9 +25,6 @@ def check_float16_and_bfloat16_support():
         print("No GPU found")
         return False, False
 
-# Check for float16 and bfloat16 support
-float16_support, bfloat16_support = check_float16_and_bfloat16_support()
-
 def get_model(model_name):
     model_folder = Path(os.path.dirname(os.path.realpath(__file__)) + "/models/")
     model_weight =  os.path.join(str(model_folder), f"{model_name}.pt")
@@ -61,4 +58,3 @@ def resize_mask(mask, h_orig, w_orig):
                         interpolation = cv2.INTER_NEAREST
         )
     return mask
-
