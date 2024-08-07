@@ -143,6 +143,9 @@ class InferSegmentAnything2(dataprocess.CSemanticSegmentationTask):
         return [mask_output]
 
     def infer_predictor(self, graph_input, src_image, resizing, param):
+        self.input_box = None
+        self.input_label = None
+        self.input_point = None
         # Get input from coordinate prompt param - STUDIO/API
         if param.input_box or param.input_point:
             if param.input_box:
@@ -182,6 +185,8 @@ class InferSegmentAnything2(dataprocess.CSemanticSegmentationTask):
 
         # Inference from multiple boxes
         if self.input_box is not None and len(self.input_box) > 1:
+            if self.input_point is not None:
+                    print('Point input(s) not used, please select a correct graphic input combination')
             masks, _, _ = self.predictor.predict(
                         point_coords=None,
                         point_labels=None,
@@ -236,9 +241,21 @@ class InferSegmentAnything2(dataprocess.CSemanticSegmentationTask):
 
         # Inference from a single box and a single point
         elif self.input_point is not None and len(self.input_box) == 1:
+            if len(self.input_point) > 1:
+                self.input_box = None
+                print('Box input(s) not used, please select a correct graphic input combination')
+                if param.input_point_label:
+                    self.input_label = json.loads(param.input_point_label)
+                    self.input_label = np.array(self.input_label)
+                    # Edit input label if the user makes a mistake
+                if len(self.input_label) != len(self.input_point):
+                    self.input_label = np.ones(len(self.input_point))
+            else:
+                self.input_label = np.array([0])
+
             masks, _, _ = self.predictor.predict(
                 point_coords=self.input_point,
-                point_labels=np.array([0]),
+                point_labels=self.input_label,
                 box=self.input_box,
                 multimask_output=param.multimask_output,
             )
