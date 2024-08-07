@@ -41,7 +41,7 @@ class InferSegmentAnything2Param(core.CWorkflowTaskParam):
         self.input_box = ''
         self.input_point_label = ''
         self.cuda = torch.cuda.is_available()
-        self.use_m2m = False
+        self.use_m2m = True
         self.multimask_output = False
         self.update = False
 
