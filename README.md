@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="images/icon.png" alt="Algorithm icon">
+  <img src="images/meta_icon.jpg" alt="Algorithm icon">
   <h1 align="center">infer_segment_anything_2</h1>
 </div>
 <br />
