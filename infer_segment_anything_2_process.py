@@ -200,9 +200,8 @@ class InferSegmentAnything2(dataprocess.CSemanticSegmentationTask):
 
             masks = np.squeeze(masks)
             for i, mask_bool in enumerate(masks):
-                mask = mask_bool
-                i += 1
-                mask_output = mask_output + mask * i
+                mask_output += mask_bool * (i + 1)
+            masks = [mask_output]
 
         # Inference from points
         elif self.input_point is not None and self.input_box is None:
