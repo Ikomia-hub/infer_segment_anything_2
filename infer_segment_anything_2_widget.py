@@ -51,7 +51,7 @@ class InferSegmentAnything2Widget(core.CWorkflowTaskWidget):
 
         self.grid_layout.addWidget(self.toggle_prompt_button)
 
-        self.prompt_group = QGroupBox("PROMPT PREDICTOR")
+        self.prompt_group = QGroupBox()
         self.prompt_layout = QGridLayout()
         self.prompt_group.setLayout(self.prompt_layout)
         self.prompt_group.setVisible(False)
@@ -82,7 +82,7 @@ class InferSegmentAnything2Widget(core.CWorkflowTaskWidget):
         self.toggle_automask_button.setStyleSheet("text-align: left; padding: 5px;")
         self.grid_layout.addWidget(self.toggle_automask_button)
 
-        self.automask_group = QGroupBox("AUTOMATIC MASK GENERATOR")
+        self.automask_group = QGroupBox()
         self.automask_layout = QGridLayout()
         self.automask_group.setLayout(self.automask_layout)
         self.automask_group.setVisible(False)
