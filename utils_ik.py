@@ -17,12 +17,6 @@ def check_float16_and_bfloat16_support():
         if bfloat16_support:
             torch.backends.cuda.matmul.allow_tf32 = True
             torch.backends.cudnn.allow_tf32 = True
-
-        print(f"GPU: {device_name}")
-        print(f"Compute Capability: {compute_capability}")
-        print(f"float16 support: {float16_support}")
-        print(f"bfloat16 support: {bfloat16_support}")
-
         return float16_support, bfloat16_support
     else:
         print("No GPU found")
