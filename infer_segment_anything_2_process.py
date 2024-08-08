@@ -365,9 +365,11 @@ class InferSegmentAnything2(dataprocess.CSemanticSegmentationTask):
             with torch.autocast(device_type="cuda" if param.cuda else "cpu", dtype=self.dtype):
                 masks = self.infer_mask_generator(src_image)
 
+        # Clear output
+        for i in range(2,3):
+            self.remove_output(i)
         # Set image output
         if len(masks) > 1:
-            # self.remove_output(1)
             for i, mask in enumerate(masks):
                 self.add_output(dataprocess.CSemanticSegmentationIO())
                 mask = mask.astype("uint8")
