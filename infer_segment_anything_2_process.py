@@ -120,7 +120,7 @@ class InferSegmentAnything2(dataprocess.CSemanticSegmentationTask):
         self.input_point = None
         self.input_label = np.array([1]) # foreground point
         self.input_box = None
-        self.dtype = torch.float32
+        self.dtype = torch.float16
 
     def get_progress_steps(self):
         # Function returning the number of progress steps for this algorithm
@@ -304,7 +304,8 @@ class InferSegmentAnything2(dataprocess.CSemanticSegmentationTask):
         # Load model
         if param.update or self.sam2_model is None:
             # Check for float16 and bfloat16 support
-            float16_support, bfloat16_support = check_float16_and_bfloat16_support()
+            float16_support, bfloat16_support = check_float16_and_bfloat16_support(param.cuda)
+
             # Determine dtype based on GPU support
             self.dtype = torch.bfloat16 if bfloat16_support else torch.float16 \
                             if float16_support else torch.float32
@@ -337,7 +338,15 @@ class InferSegmentAnything2(dataprocess.CSemanticSegmentationTask):
         if graph_input.is_data_available() or param.input_box or param.input_point:
             if self.predictor is None:
                 self.predictor = SAM2ImagePredictor(self.sam2_model)
-            with torch.autocast(device_type="cuda" if param.cuda else "cpu", dtype=self.dtype):
+            if self.device == torch.device("cuda"):
+                with torch.autocast(device_type="cuda" if param.cuda else "cpu", dtype=self.dtype):
+                    masks = self.infer_predictor(
+                                        graph_input=graph_input,
+                                        src_image=src_image,
+                                        resizing=ratio,
+                                        param=param
+                    )
+            else:
                 masks = self.infer_predictor(
                                     graph_input=graph_input,
                                     src_image=src_image,
@@ -362,7 +371,10 @@ class InferSegmentAnything2(dataprocess.CSemanticSegmentationTask):
                                     use_m2m=param.use_m2m,
                                     multimask_output=param.multimask_output
             )
-            with torch.autocast(device_type="cuda" if param.cuda else "cpu", dtype=self.dtype):
+            if self.device == torch.device("cuda"):
+                with torch.autocast(device_type="cuda" if param.cuda else "cpu", dtype=self.dtype):
+                    masks = self.infer_mask_generator(src_image)
+            else:
                 masks = self.infer_mask_generator(src_image)
 
         # Clear output

@@ -7,10 +7,9 @@ import torch
 base_url = "https://dl.fbaipublicfiles.com/segment_anything_2/072824/"
 
 
-def check_float16_and_bfloat16_support():
-    if torch.cuda.is_available():
+def check_float16_and_bfloat16_support(cuda):
+    if torch.cuda.is_available() and cuda:
         gpu = torch.device('cuda')
-        device_name = torch.cuda.get_device_name(gpu)
         compute_capability = torch.cuda.get_device_capability(gpu)
         float16_support = compute_capability[0] >= 6  # Compute capability 6.0 or higher
         bfloat16_support = compute_capability[0] >= 8  # Compute capability 8.0 or higher
