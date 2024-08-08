@@ -197,11 +197,23 @@ class InferSegmentAnything2(dataprocess.CSemanticSegmentationTask):
                             src_image.shape[0],
                             src_image.shape[1]
                             ))
-
             masks = np.squeeze(masks)
-            for i, mask_bool in enumerate(masks):
-                mask_output += mask_bool * (i + 1)
-            masks = [mask_output]
+
+            if masks.ndim == 3:
+                mask_output = np.zeros((masks.shape[1], masks.shape[2]), dtype=masks.dtype)
+                for i, mask_bool in enumerate(masks):
+                    mask_output += mask_bool * (i + 1)
+                masks = [mask_output]
+            elif masks.ndim == 4:
+                mask_outputs = []
+                for j in range(masks.shape[1]):
+                    mask_output = np.zeros((masks.shape[2], masks.shape[3]), dtype=masks.dtype)
+                    for i, mask_bool in enumerate(masks[:, j, :, :]):
+                        mask_output += mask_bool * (i + 1)
+                    mask_outputs.append(mask_output)
+                masks = mask_outputs
+            else:
+                raise ValueError("Unexpected mask dimensions")
 
         # Inference from points
         elif self.input_point is not None and self.input_box is None:
