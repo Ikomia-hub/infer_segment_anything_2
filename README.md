@@ -21,7 +21,7 @@
 
 This algorithm proposes inference for the Segment Anything Model 2 (SAM2). It can be used to generate masks for all objects in an image. With its promptable segmentation capability, SAM delivers unmatched versatility for various image analysis tasks. 
 
-![Sam2 car](https://raw.githubusercontent.com/Ikomia-hub/infer_segment_anything_2/main/output_auto.jpg)
+![Sam2 car](https://raw.githubusercontent.com/Ikomia-hub/infer_segment_anything_2/main/images/output_auto.jpg)
 
 ## :rocket: Use with Ikomia API
 
