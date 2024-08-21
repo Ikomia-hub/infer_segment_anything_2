@@ -21,7 +21,11 @@
 
 This algorithm proposes inference for the Segment Anything Model 2 (SAM2). It can be used to generate masks for all objects in an image. With its promptable segmentation capability, SAM delivers unmatched versatility for various image analysis tasks. 
 
+
+[![Open In GitHub](https://img.shields.io/badge/Open%20Notebook-GitHub-orange)](https://github.com/Ikomia-dev/notebooks/blob/main/examples/HOWTO_use_SAM_2_with_Ikomia_API.ipynb)
+
 ![Sam2 car](https://raw.githubusercontent.com/Ikomia-hub/infer_segment_anything_2/main/images/output_auto.jpg)
+
 
 ## :rocket: Use with Ikomia API
 
@@ -66,6 +70,7 @@ Ikomia Studio offers a friendly UI with the same features as the API.
     - sam2_hiera_large - size: 224.4
 - `cuda` `[bool]`: If True, CUDA-based inference (GPU). If False, run on CPU.
 - `input_size_percent` `[int]` : Percentage size of the input image. Can be reduce to save memory usage. 
+- `apply_postprocessing` `[Bool]` : Whether or not to apply mask output image post processing.
 
 ### Prompt predictor parameters
 - `input_box` `[list]`: A Nx4 array of given box prompts to the  model, in [[XYXY]] or [[XYXY], [XYXY]] format.

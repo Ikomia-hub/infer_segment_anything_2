@@ -24,7 +24,7 @@ class InferSegmentAnything2Param(core.CWorkflowTaskParam):
         core.CWorkflowTaskParam.__init__(self)
         # Place default value initialization here
         self.model_name = "sam2_hiera_small"
-        self.apply_postprocessing = False
+        self.apply_postprocessing = True
         self.points_per_side = 32
         self.points_per_batch = 64
         self.stability_score_thresh = 0.95
@@ -158,6 +158,12 @@ class InferSegmentAnything2(dataprocess.CSemanticSegmentationTask):
                 point = json.loads(param.input_point)
                 self.input_point = np.array(point)
                 self.input_point = self.input_point * resizing
+                if param.input_point_label:
+                    label_id = json.loads(param.input_point_label)
+                    self.input_label = np.array(label_id)
+                else:
+                    raise ValueError("input_label is required but not provided.")
+
 
         # Get input from drawn graphics - STUDIO
         else:
@@ -190,7 +196,7 @@ class InferSegmentAnything2(dataprocess.CSemanticSegmentationTask):
             masks, _, _ = self.predictor.predict(
                         point_coords=None,
                         point_labels=None,
-                        box=box,
+                        box=self.input_box,
                         multimask_output=param.multimask_output,
                         )
             mask_output = np.zeros((
@@ -266,7 +272,7 @@ class InferSegmentAnything2(dataprocess.CSemanticSegmentationTask):
 
             masks, _, _ = self.predictor.predict(
                 point_coords=self.input_point,
-                point_labels=self.input_label,
+                point_labels=np.array([0]),
                 box=self.input_box,
                 multimask_output=param.multimask_output,
             )
@@ -418,7 +424,7 @@ class InferSegmentAnything2Factory(dataprocess.CTaskFactory):
         self.info.short_description = "Inference for Segment Anything Model 2 (SAM2)."
         # relative path -> as displayed in Ikomia application process tree
         self.info.path = "Plugins/Python/Segmentation"
-        self.info.version = "1.0.0"
+        self.info.version = "1.1.0"
         self.info.icon_path = "images/meta_icon.jpg"
         self.info.authors = "Ravi, Nikhila and Gabeur, Valentin and Hu, Yuan-Ting and Hu, " \
                             "Haitham and Radle, Roman and Rolland, Chloe and Gustafson, "  \
