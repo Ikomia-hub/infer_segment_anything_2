@@ -1,18 +1,18 @@
 import copy
+import json
+
 import torch
 import numpy as np
-import cv2
-import json
 import hydra
+from omegaconf import DictConfig
 
 from ikomia import core, dataprocess, utils
+import cv2
 
 from infer_segment_anything_2.utils_ik import *
 from infer_segment_anything_2.sam_2.sam2.build_sam import build_sam2
 from infer_segment_anything_2.sam_2.sam2.sam2_image_predictor import SAM2ImagePredictor
 from infer_segment_anything_2.sam_2.sam2.automatic_mask_generator import SAM2AutomaticMaskGenerator
-
-from omegaconf import DictConfig
 
 # --------------------
 # - Class to handle the algorithm parameters
@@ -73,27 +73,28 @@ class InferSegmentAnything2Param(core.CWorkflowTaskParam):
     def get_values(self):
         # Send parameters values to Ikomia application
         # Create the specific dict structure (string container)
-        param_map = {}
-        param_map["model_name"] = str(self.model_name)
-        param_map["apply_postprocessing"] = str(self.apply_postprocessing)
-        param_map["points_per_side"] = str(self.points_per_side)
-        param_map["points_per_batch"] = str(self.points_per_batch)
-        param_map["iou_thres"] = str(self.iou_thres)
-        param_map["stability_score_thresh"] = str(self.stability_score_thresh)
-        param_map["stability_score_offset"] = str(self.stability_score_offset)
-        param_map["box_nms_thresh"] = str(self.box_nms_thresh)
-        param_map["mask_threshold"] = str(self.mask_threshold)
-        param_map["crop_n_layers"] = str(self.crop_n_layers)
-        param_map["crop_overlap_ratio"] = str(self.crop_overlap_ratio)
-        param_map["crop_nms_thresh"] = str(self.crop_nms_thresh)
-        param_map["crop_n_points_downscale_factor"] = str(self.crop_n_points_downscale_factor)
-        param_map["input_size_percent"] = str(self.input_size_percent)
-        param_map["input_point"] = str(self.input_point)
-        param_map["input_point_label"] = str(self.input_point_label)
-        param_map["input_box"] = str(self.input_box)
-        param_map["use_m2m"] = str(self.use_m2m)
-        param_map["multimask_output"] = str(self.multimask_output)
-        param_map["cuda"] = str(self.cuda)
+        param_map = {
+            "model_name": str(self.model_name),
+            "apply_postprocessing": str(self.apply_postprocessing),
+            "points_per_side": str(self.points_per_side),
+            "points_per_batch": str(self.points_per_batch),
+            "iou_thres": str(self.iou_thres),
+            "stability_score_thresh": str(self.stability_score_thresh),
+            "stability_score_offset": str(self.stability_score_offset),
+            "box_nms_thresh": str(self.box_nms_thresh),
+            "mask_threshold": str(self.mask_threshold),
+            "crop_n_layers": str(self.crop_n_layers),
+            "crop_overlap_ratio": str(self.crop_overlap_ratio),
+            "crop_nms_thresh": str(self.crop_nms_thresh),
+            "crop_n_points_downscale_factor": str(self.crop_n_points_downscale_factor),
+            "input_size_percent": str(self.input_size_percent),
+            "input_point": str(self.input_point),
+            "input_point_label": str(self.input_point_label),
+            "input_box": str(self.input_box),
+            "use_m2m": str(self.use_m2m),
+            "multimask_output": str(self.multimask_output),
+            "cuda": str(self.cuda)
+        }
         return param_map
 
 
@@ -105,7 +106,7 @@ class InferSegmentAnything2(dataprocess.CSemanticSegmentationTask):
 
     def __init__(self, name, param):
         dataprocess.CSemanticSegmentationTask.__init__(self, name)
-        # Add input/output of the algorithm here
+
         # Create parameters object
         if param is None:
             self.set_param_object(InferSegmentAnything2Param())
@@ -127,6 +128,41 @@ class InferSegmentAnything2(dataprocess.CSemanticSegmentationTask):
         # This is handled by the main progress bar of Ikomia Studio
         return 1
 
+    def _load_model(self):
+        param = self.get_param_object()
+        # Check for float16 and bfloat16 support
+        float16_support, bfloat16_support = check_float16_and_bfloat16_support(param.cuda)
+
+        # Determine dtype based on GPU support
+        self.dtype = torch.bfloat16 if bfloat16_support else torch.float16 if float16_support else torch.float32
+        self.device = torch.device("cuda") if param.cuda and torch.cuda.is_available() else torch.device("cpu")
+        checkpoint, config_folder, model_cfg = get_model(param.model_name)
+
+        # Clear existing Hydra instance
+        hydra.core.global_hydra.GlobalHydra.instance().clear()
+
+        # Reinitialize Hydra with the new configuration module path
+        hydra.initialize_config_dir(config_dir=config_folder, job_name="infer_segment_anything_2")
+
+        # Load the configuration
+        cfg = hydra.compose(config_name=model_cfg)
+
+        # Ensure cfg is a valid configuration object
+        if not isinstance(cfg, DictConfig):
+            raise TypeError("Configuration is not a valid DictConfig object")
+
+        self.sam2_model = build_sam2(
+            model_cfg,
+            checkpoint,
+            device=self.device,
+            apply_postprocessing=param.apply_postprocessing)
+
+        param.update = False
+
+    def init_long_process(self):
+        self._load_model()
+        super().init_long_process()
+
     def infer_mask_generator(self, image):
         # Generate mask
         results = self.mask_generator.generate(image)
@@ -140,14 +176,16 @@ class InferSegmentAnything2(dataprocess.CSemanticSegmentationTask):
         else:
             print("No mask predicted, increasing the number of points per side may help")
             mask_output = None
+
         return [mask_output]
 
     def infer_predictor(self, graph_input, src_image, resizing, param):
         self.input_box = None
         self.input_label = None
         self.input_point = None
-        # Get input from coordinate prompt param - STUDIO/API
+
         if param.input_box or param.input_point:
+            # Get input from coordinate prompt param - STUDIO/API
             if param.input_box:
                 box_list = json.loads(param.input_box)
                 self.input_box = np.array(box_list)
@@ -158,18 +196,18 @@ class InferSegmentAnything2(dataprocess.CSemanticSegmentationTask):
                 point = json.loads(param.input_point)
                 self.input_point = np.array(point)
                 self.input_point = self.input_point * resizing
+
                 if param.input_point_label:
                     label_id = json.loads(param.input_point_label)
                     self.input_label = np.array(label_id)
                 else:
                     raise ValueError("input_label is required but not provided.")
-
-
-        # Get input from drawn graphics - STUDIO
         else:
+            # Get input from drawn graphics - STUDIO
             graphics = graph_input.get_items() #Get list of input graphics items.
             box = []
             point = []
+
             for i, graphic in enumerate(graphics):
                 bboxes = graphics[i].get_bounding_rect() # Get graphic coordinates
                 if graphic.get_type() == core.GraphicsItem.RECTANGLE: # rectangle
@@ -180,6 +218,7 @@ class InferSegmentAnything2(dataprocess.CSemanticSegmentationTask):
                     box.append([x1, y1, x2, y2])
                     self.input_box = np.array(box)
                     self.input_label = np.array([0]) # background point
+
                 if graphic.get_type() == core.GraphicsItem.POINT: # point
                     x1 = bboxes[0]*resizing
                     y1 = bboxes[1]*resizing
@@ -189,26 +228,24 @@ class InferSegmentAnything2(dataprocess.CSemanticSegmentationTask):
         # Calculate the necessary image embedding
         self.predictor.set_image(src_image)
 
-        # Inference from multiple boxes
         if self.input_box is not None and len(self.input_box) > 1:
+            # Inference from multiple boxes
             if self.input_point is not None:
-                    print('Point input(s) not used, please select a correct graphic input combination')
+                print('Point input(s) not used, please select a correct graphic input combination')
+
             masks, _, _ = self.predictor.predict(
                         point_coords=None,
                         point_labels=None,
                         box=self.input_box,
                         multimask_output=param.multimask_output,
                         )
-            mask_output = np.zeros((
-                            src_image.shape[0],
-                            src_image.shape[1]
-                            ))
-            masks = np.squeeze(masks)
 
+            masks = np.squeeze(masks)
             if masks.ndim == 3:
                 mask_output = np.zeros((masks.shape[1], masks.shape[2]), dtype=masks.dtype)
                 for i, mask_bool in enumerate(masks):
                     mask_output += mask_bool * (i + 1)
+
                 masks = [mask_output]
             elif masks.ndim == 4:
                 mask_outputs = []
@@ -216,13 +253,13 @@ class InferSegmentAnything2(dataprocess.CSemanticSegmentationTask):
                     mask_output = np.zeros((masks.shape[2], masks.shape[3]), dtype=masks.dtype)
                     for i, mask_bool in enumerate(masks[:, j, :, :]):
                         mask_output += mask_bool * (i + 1)
+
                     mask_outputs.append(mask_output)
                 masks = mask_outputs
             else:
                 raise ValueError("Unexpected mask dimensions")
-
-        # Inference from points
         elif self.input_point is not None and self.input_box is None:
+            # Inference from points
             if len(self.input_point) == 1:
                 masks, _, _ = self.predictor.predict(
                     point_coords=self.input_point,
@@ -234,6 +271,7 @@ class InferSegmentAnything2(dataprocess.CSemanticSegmentationTask):
                 if param.input_point_label:
                     self.input_label = json.loads(param.input_point_label)
                     self.input_label = np.array(self.input_label)
+
                     # Edit input label if the user makes a mistake
                     if len(self.input_label) != len(self.input_point):
                         self.input_label = np.ones(len(self.input_point))
@@ -246,18 +284,16 @@ class InferSegmentAnything2(dataprocess.CSemanticSegmentationTask):
                     point_labels=self.input_label,
                     multimask_output=param.multimask_output,
                 )
-
-        # Inference from a single box
         elif self.input_point is None and len(self.input_box) == 1:
+            # Inference from a single box
             masks, _, _ = self.predictor.predict(
             point_coords=None,
             point_labels=None,
             box=self.input_box[None, :],
             multimask_output=param.multimask_output,
             )
-
-        # Inference from a single box and a single point
         elif self.input_point is not None and len(self.input_box) == 1:
+            # Inference from a single box and a single point
             if len(self.input_point) > 1:
                 self.input_box = None
                 print('Box input(s) not used, please select a correct graphic input combination')
@@ -308,36 +344,8 @@ class InferSegmentAnything2(dataprocess.CSemanticSegmentationTask):
             src_image = cv2.resize(src_image, dim, interpolation = cv2.INTER_LINEAR)
 
         # Load model
-        if param.update or self.sam2_model is None:
-            # Check for float16 and bfloat16 support
-            float16_support, bfloat16_support = check_float16_and_bfloat16_support(param.cuda)
-
-            # Determine dtype based on GPU support
-            self.dtype = torch.bfloat16 if bfloat16_support else torch.float16 \
-                            if float16_support else torch.float32
-            self.device = torch.device("cuda") if param.cuda and \
-                            torch.cuda.is_available() else torch.device("cpu")
-            checkpoint, config_folder, model_cfg = get_model(param.model_name)
-
-            # Clear existing Hydra instance
-            hydra.core.global_hydra.GlobalHydra.instance().clear()
-
-            # Reinitialize Hydra with the new configuration module path
-            hydra.initialize_config_dir(config_dir=config_folder, job_name="infer_segment_anything_2")
-
-            # Load the configuration
-            cfg = hydra.compose(config_name=model_cfg)
-
-            # Ensure cfg is a valid configuration object
-            if not isinstance(cfg, DictConfig):
-                raise TypeError("Configuration is not a valid DictConfig object")
-
-            self.sam2_model = build_sam2(
-                                model_cfg,
-                                checkpoint,
-                                device=self.device,
-                                apply_postprocessing=param.apply_postprocessing)
-            param.update = False
+        if param.update:
+            self._load_model()
 
         # Check graphic input prompt
         graph_input = self.get_input(1)
@@ -377,6 +385,7 @@ class InferSegmentAnything2(dataprocess.CSemanticSegmentationTask):
                                     use_m2m=param.use_m2m,
                                     multimask_output=param.multimask_output
             )
+
             if self.device == torch.device("cuda"):
                 with torch.autocast(device_type="cuda" if param.cuda else "cpu", dtype=self.dtype):
                     masks = self.infer_mask_generator(src_image)
@@ -386,20 +395,23 @@ class InferSegmentAnything2(dataprocess.CSemanticSegmentationTask):
         # Clear output
         for i in range(2,3):
             self.remove_output(i)
+
         # Set image output
         if len(masks) > 1:
             for i, mask in enumerate(masks):
                 self.add_output(dataprocess.CSemanticSegmentationIO())
                 mask = mask.astype("uint8")
+
                 if param.input_size_percent < 100:
                     mask = resize_mask(mask, h_orig, w_orig)
+
                 output = self.get_output(i+1)
                 output.set_mask(mask)
-
         else:
             mask = masks[0].astype("uint8")
             if param.input_size_percent < 100:
                 mask = resize_mask(mask, h_orig, w_orig)
+
             # Set output mask (Semantic Seg)
             self.get_output(0)
             self.set_mask(mask)
@@ -424,7 +436,8 @@ class InferSegmentAnything2Factory(dataprocess.CTaskFactory):
         self.info.short_description = "Inference for Segment Anything Model 2 (SAM2)."
         # relative path -> as displayed in Ikomia application process tree
         self.info.path = "Plugins/Python/Segmentation"
-        self.info.version = "1.1.0"
+        self.info.version = "1.2.0"
+        self.info.min_ikomia_version = "0.15.0"
         self.info.icon_path = "images/meta_icon.jpg"
         self.info.authors = "Ravi, Nikhila and Gabeur, Valentin and Hu, Yuan-Ting and Hu, " \
                             "Haitham and Radle, Roman and Rolland, Chloe and Gustafson, "  \
@@ -446,6 +459,11 @@ class InferSegmentAnything2Factory(dataprocess.CTaskFactory):
         self.info.keywords = "SAM, ViT, Zero-Shot, SA-V dataset, Meta"
         self.info.algo_type = core.AlgoType.INFER
         self.info.algo_tasks = "SEMANTIC_SEGMENTATION"
+        # Min hardware config
+        self.info.hardware_config.min_cpu = 4
+        self.info.hardware_config.min_ram = 16
+        self.info.hardware_config.gpu_required = False
+        self.info.hardware_config.min_vram = 6
 
     def create(self, param=None):
         # Create algorithm object
