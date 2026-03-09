@@ -49,7 +49,7 @@ wf = Workflow()
 algo  = wf.add_task(name="infer_segment_anything_2", auto_connect=True)
 
 # Run directly on your image
-wf.run_on(url="https://github.com/facebookresearch/segment-anything-2/blob/main/notebooks/images/cars.jpg?raw=true")
+wf.run_on(url="https://raw.githubusercontent.com/facebookresearch/segment-anything-2/refs/heads/main/notebooks/images/cars.jpg")
 
 # Inspect your result
 display(algo.get_image_with_mask())
@@ -125,7 +125,7 @@ algo.set_parameters({
 })
 
 # Run directly on your image
-wf.run_on(url="https://github.com/Ikomia-dev/notebooks/blob/main/examples/img/img_cat.jpg?raw=true")
+wf.run_on(url="https://raw.githubusercontent.com/Ikomia-dev/notebooks/refs/heads/main/examples/img/img_cat.jpg")
 
 # Inspect your result
 img_output = algo.get_output(0)
@@ -151,7 +151,7 @@ wf = Workflow()
 algo  = wf.add_task(name="infer_segment_anything_2", auto_connect=True)
 
 # Run directly on your image
-wf.run_on(url="https://github.com/facebookresearch/segment-anything-2/blob/main/notebooks/images/cars.jpg?raw=true")
+wf.run_on(url="https://raw.githubusercontent.com/facebookresearch/segment-anything-2/refs/heads/main/notebooks/images/cars.jpg")
 
 # Iterate over outputs
 for output in algo.get_outputs():
