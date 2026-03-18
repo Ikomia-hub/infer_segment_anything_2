@@ -1,8 +1,11 @@
+from torch.cuda import is_available
+
+from PyQt6.QtWidgets import *
+
 from ikomia import core, dataprocess
 from ikomia.utils import pyqtutils, qtconversion
+
 from infer_segment_anything_2.infer_segment_anything_2_process import InferSegmentAnything2Param
-from torch.cuda import is_available
-from PyQt5.QtWidgets import *
 
 
 class InferSegmentAnything2Widget(core.CWorkflowTaskWidget):
@@ -57,7 +60,11 @@ class InferSegmentAnything2Widget(core.CWorkflowTaskWidget):
         self.prompt_group.setVisible(False)
         self.grid_layout.addWidget(self.prompt_group)
 
-        self.check_multimask_output = pyqtutils.append_check(self.prompt_layout, "Multimask output", self.parameters.multimask_output)
+        self.check_multimask_output = pyqtutils.append_check(
+            self.prompt_layout,
+            "Multimask output",
+            self.parameters.multimask_output
+        )
 
         self.edit_box_input = pyqtutils.append_edit(self.prompt_layout,
                                                     "Box coord. [[xyxy]]",

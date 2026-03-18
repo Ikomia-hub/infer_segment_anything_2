@@ -436,8 +436,8 @@ class InferSegmentAnything2Factory(dataprocess.CTaskFactory):
         self.info.short_description = "Inference for Segment Anything Model 2 (SAM2)."
         # relative path -> as displayed in Ikomia application process tree
         self.info.path = "Plugins/Python/Segmentation"
-        self.info.version = "1.2.1"
-        self.info.min_ikomia_version = "0.15.0"
+        self.info.version = "1.3.0"
+        self.info.min_ikomia_version = "0.16.0"
         self.info.icon_path = "images/meta_icon.jpg"
         self.info.authors = "Ravi, Nikhila and Gabeur, Valentin and Hu, Yuan-Ting and Hu, " \
                             "Haitham and Radle, Roman and Rolland, Chloe and Gustafson, "  \
